@@ -1,5 +1,9 @@
 import React, {Component} from 'react';
 import Panel from 'react-bootstrap/lib/Panel';
+
+import Grid from 'react-bootstrap/lib/Grid';
+import Row from 'react-bootstrap/lib/Row';
+import Col from 'react-bootstrap/lib/Col';
 import {Link} from 'react-router'
 import Moment from 'react-moment';
 import Spinner from 'react-spinkit';
@@ -16,7 +20,9 @@ const data = [
 ];
 
 function padToTwo(number) {
-  if (number<99) { number = ("0"+number).slice(-2); }
+  if (number < 99) {
+    number = ("0" + number).slice(-2);
+  }
   return number;
 }
 
@@ -28,7 +34,7 @@ class LocationList extends Component {
   }
 
   componentDidMount() {
-
+    console.log('lon lat props', this.props.lon, this.props.lat);
     navigator.geolocation.getCurrentPosition(position => {
       console.log('position', position);
       fetch(`https://s7heu2cj63.execute-api.eu-central-1.amazonaws.com/prod/astronomyforecast?lat=20&lon=160&timeZone=Etc/GMT-10`)
@@ -42,21 +48,17 @@ class LocationList extends Component {
   render() {
     const forecasts = this.state.forecasts;
     return (
-      forecasts ?
-        <div>
-          {forecasts.map(forecast =>
-            <Panel>
-              <p> {padToTwo(forecast.startOfHour.time.hour)}:{padToTwo(forecast.startOfHour.time.minute)}   </p>
-              <BarChart width={600} height={400} data={data} margin={{top: 5, right: 30, left: 20, bottom: 5}}>
-                <XAxis dataKey="name"/>
-                <YAxis/>
-                <CartesianGrid strokeDasharray="3 3"/>
-                <Tooltip/>
-                <Legend />
-                <Bar dataKey="moonshine" fill="#8884d8"/>
-                <Bar dataKey="clouds" fill="#82ca9d"/>
-              </BarChart>
-            </Panel>)}</div> : <Spinner spinnerName='cube-grid'/> )
+      forecasts ? (
+        <Grid>
+          <Row>
+            {forecasts.map(forecast =>
+              <Col xs={12} sm={6} lg={2}>
+                <Panel>
+                  <p>{padToTwo(forecast.startOfHour.date.day)}.{padToTwo(forecast.startOfHour.date.month)}.{padToTwo(forecast.startOfHour.date.year)}
+                    @ {padToTwo(forecast.startOfHour.time.hour)}:{padToTwo(forecast.startOfHour.time.minute)}   </p>
+                  <h1>{forecast.cloudyness.percentage} % clouds </h1>
+                </Panel> </Col>)}</Row></Grid>) : <Spinner spinnerName='cube-grid'/>
+    )
   }
 }
 export default LocationList;
