@@ -5,19 +5,23 @@ import Grid from 'react-bootstrap/lib/Grid';
 import Row from 'react-bootstrap/lib/Row';
 import Col from 'react-bootstrap/lib/Col';
 import {Link} from 'react-router'
-import Moment from 'react-moment';
 import Spinner from 'react-spinkit';
-import  {ResponsiveContainer, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Bar, Legend} from 'recharts';
+import {ResponsiveContainer, AreaChart, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend} from 'recharts';
 
-const data = [
-  {name: 'Today', clouds: 4000, moonshine: 2400, amt: 2400},
-  {name: 'Tuesday', clouds: 3000, moonshine: 1398, amt: 2210},
-  {name: 'Wednesday', clouds: 2000, moonshine: 9800, amt: 2290},
-  {name: 'Thursday', clouds: 2780, moonshine: 3908, amt: 2000},
-  {name: 'Friday', clouds: 1890, moonshine: 4800, amt: 2181},
-  {name: 'Saturday', clouds: 2390, moonshine: 3800, amt: 2500},
-  {name: 'Sunday', clouds: 3490, moonshine: 4300, amt: 2100},
-];
+const StackedAreaChart = ({data}) =>
+  <ResponsiveContainer width={1000} height={450}>
+    <AreaChart data={data} margin={{top: 10, right: 30, left: 0, bottom: 0}}>
+      <XAxis dataKey="name"/>
+      <CartesianGrid strokeDasharray="3 3"/>
+      <Tooltip/>
+      <Tooltip/>
+      <Area type='monotone' dataKey='high' stackId="1" stroke='#C0C0FF' fill='#C0C0FF'/>
+      <Area type='monotone' dataKey='medium' stackId="2" stroke='#B0B0FF' fill='#B0B0FF'/>
+      <Area type='monotone' dataKey='low' stackId="3" stroke='#A0A0FF' fill='#A0A0FF'/>
+      <Legend />
+    </AreaChart>
+  </ResponsiveContainer>;
+
 
 function padToTwo(number) {
   if (number < 99) {
@@ -34,12 +38,9 @@ class LocationList extends Component {
   }
 
   componentDidMount() {
-    console.log('lon lat props', this.props.lon, this.props.lat);
     navigator.geolocation.getCurrentPosition(position => {
-      console.log('position', position);
       fetch(`https://s7heu2cj63.execute-api.eu-central-1.amazonaws.com/prod/astronomyforecast?lat=20&lon=160&timeZone=Etc/GMT-10`)
         .then(response => response.json().then(data => {
-          console.log('data receoved ', data);
           this.setState({forecasts: data.horlyForecasts});
         }));
     });
@@ -47,18 +48,40 @@ class LocationList extends Component {
 
   render() {
     const forecasts = this.state.forecasts;
-    return (
-      forecasts ? (
+    if (!forecasts) {
+      return (<Grid><Row><Col lg={12} xs={12}><Spinner spinnerName='cube-grid'/></Col></Row></Grid>);
+    } else {
+      const mapped = [];
+      forecasts.forEach(forecast => mapped.push({
+        name: forecast.forecastFrom,
+        high: forecast.highClouds.percentage,
+        medium: forecast.mediumClouds.percentage,
+        low: forecast.lowClouds.percentage
+      }));
+
+      return (
         <Grid>
           <Row>
-            {forecasts.map(forecast =>
-              <Col xs={12} sm={6} lg={2}>
+            <Col xs={12} sm={12} lg={12}>
+              <h1>Cloudyness</h1>
+              <p> Coverage % of high medium and low clouds over the next coming days </p>
+              <Panel>
+                <StackedAreaChart id='container' data={mapped}/>
+              </Panel>
+            </Col>
+          </Row>
+          <Row>
+            {forecasts.filter(forecast => forecast.cloudyness.percentage < 10).map(forecast =>
+              <Col xs={12} sm={6} lg={4}>
                 <Panel>
-                  <p>{padToTwo(forecast.startOfHour.date.day)}.{padToTwo(forecast.startOfHour.date.month)}.{padToTwo(forecast.startOfHour.date.year)}
-                    @ {padToTwo(forecast.startOfHour.time.hour)}:{padToTwo(forecast.startOfHour.time.minute)}   </p>
+                  <p>{forecast.forecastFrom}</p>
                   <h1>{forecast.cloudyness.percentage} % clouds </h1>
-                </Panel> </Col>)}</Row></Grid>) : <Spinner spinnerName='cube-grid'/>
-    )
+                  <p>Dewpoint at {forecast.dewPoint} {forecast.dewPointUnit}</p>
+                </Panel> </Col>)}</Row></Grid>
+      )
+    }
   }
 }
+
+
 export default LocationList;
